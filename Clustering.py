@@ -250,20 +250,23 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     # X.sort()
     Distance = euclid(X, X)
     Adjacency = similarity(Distance, similarity_param)
-    Degree = np.diag(Adjacency.sum(axis=0))
+    diag = np.sqrt(Adjacency.sum(axis=0))
+    Degree = np.diag(diag)
 
     Laplacien = Degree - Adjacency   # TODO: use normalized L_sym
 
+    Laplacien = np.multiply(np.multiply(Laplacien, diag).T, diag).T
+
     v, U = np.linalg.eig(Laplacien)
 
-    plt.plot(range(0,840), U[:, 1])  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
-    plt.plot(range(0,840), v)
-    T = U[:,:4]
+    #plt.plot(range(0,840), U[:, 1])  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
+    #plt.plot(range(0,840), v)
+    T = U[:,:k]
 
     row_sums = T.sum(axis=1)
     t = T / row_sums[:, np.newaxis]
 
-    kmeans(t, k)  # TODO: doesn't work
+    return kmeans(t, k)  # TODO: does not work :-(
 
 
 
@@ -282,8 +285,9 @@ if __name__ == '__main__':
     # idx = np.random.choice(X.shape[0], 800, replace=False)
     # X = X[idx]
 
-    points2cluster, centers = kmeans(X, 4)
-    plt.scatter(X[:,0], X[:,1])#, c=points2cluster)
+    #points2cluster, centers = kmeans(X, 4)
+    points2cluster, centers = spectral(X, 4, 1)
+    plt.scatter(X[:,0], X[:,1], c=points2cluster)
     plt.plot(centers[:, 0], centers[:, 1], 'og')
     plt.show()
 
