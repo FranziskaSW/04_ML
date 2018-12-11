@@ -220,7 +220,9 @@ def gaussian_kernel(X, sigma):
     :return: NxN similarity matrix.
     """
 
-    # TODO: YOUR CODE HERE
+    # TODO: check
+    W = np.exp(-X/(2*sigma))
+    return W
 
 
 def mnn(X, m):
@@ -245,19 +247,43 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     """
 
     # TODO: YOUR CODE HERE
+    # X.sort()
+    Distance = euclid(X, X)
+    Adjacency = similarity(Distance, similarity_param)
+    Degree = np.diag(Adjacency.sum(axis=0))
+
+    Laplacien = Degree - Adjacency   # TODO: use normalized L_sym
+
+    v, U = np.linalg.eig(Laplacien)
+
+    plt.plot(range(0,840), U[:, 1])  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
+    plt.plot(range(0,840), v)
+    T = U[:,:4]
+
+    row_sums = T.sum(axis=1)
+    t = T / row_sums[:, np.newaxis]
+
+    kmeans(t, k)  # TODO: doesn't work
+
+
+
+
+
 
 
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    # X = three_gaussians_example()
+    X = three_gaussians_example()
 
     X = circles_example()
 
     # X = apml_pic_example()
+    # idx = np.random.choice(X.shape[0], 800, replace=False)
+    # X = X[idx]
 
     points2cluster, centers = kmeans(X, 4)
-    plt.scatter(X[:,0], X[:,1], c=points2cluster)
+    plt.scatter(X[:,0], X[:,1])#, c=points2cluster)
     plt.plot(centers[:, 0], centers[:, 1], 'og')
     plt.show()
 
