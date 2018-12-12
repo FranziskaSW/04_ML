@@ -44,7 +44,7 @@ def apml_pic_example(path='APML_pic.pickle'):
 
 
 def three_gaussians_example():
-    N = 500
+    N = 840
     params = {0: {'mean': [1, -1],
                   'cov': [[1, 0], [0, 1]]},
               1: {'mean': [5, -5],
@@ -250,20 +250,22 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     # X.sort()
     Distance = euclid(X, X)
     Adjacency = similarity(Distance, similarity_param)
-    diag = np.sqrt(Adjacency.sum(axis=0))
+    diag = Adjacency.sum(axis=0) - 1
     Degree = np.diag(diag)
 
     Laplacien = Degree - Adjacency   # TODO: use normalized L_sym
 
-    Laplacien = np.multiply(np.multiply(Laplacien, diag).T, diag).T
+    L_sym = np.multiply(np.sqrt(diag)**(-1), np.multiply(Laplacien, np.sqrt(diag)**(-1)))
 
-    v, U = np.linalg.eig(Laplacien)
+    v, U = np.linalg.eig(L_sym)
 
-    #plt.plot(range(0,840), U[:, 1])  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
-    #plt.plot(range(0,840), v)
+    u2 = U[:, 1]
+    u2.sort()
+    # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
+    # plt.bar(range(0,10), v[:10])
     T = U[:,:k]
 
-    row_sums = T.sum(axis=1)
+    row_sums = np.linalg.norm(T, axis=1)
     t = T / row_sums[:, np.newaxis]
 
     return kmeans(t, k)  # TODO: does not work :-(
