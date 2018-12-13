@@ -171,7 +171,7 @@ def kmeans_pp_init(X, k, metric):
     return center
 
 
-def kmeans(X, k, iterations=40, metric=euclid, center=euclidean_centroid, init=kmeans_pp_init):
+def kmeans(X, k, iterations=10, metric=euclid, center=euclidean_centroid, init=kmeans_pp_init):
     """
     The K-Means function, clustering the data X into k clusters.
     :param X: A NxD data matrix.
@@ -232,6 +232,14 @@ def mnn(X, m):
     """
 
     # TODO: YOUR CODE HERE
+    dist_idx = np.argsort(X, axis=1)
+    nearest_idx = dist_idx[:, :(m+1)]
+
+    NN = np.zeros(X.shape)
+    for i in range(0, X.shape[0]):
+        NN[nearest_idx[i],i] = 1 # so far only one directional nn, not mutual nn
+
+    return NN
 
 
 def spectral(X, k, similarity_param, similarity=gaussian_kernel):
@@ -284,20 +292,28 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    # X = three_gaussians_example()
+    # X = three_gaussians_example() # nn 5
 
-    # X = circles_example()
+    X = circles_example() # nn 5
 
-    X = apml_pic_example()
+    #X = apml_pic_example()
 
     #points2cluster, centers = kmeans(X, 4)
 
-    nn = 5
-    dist = euclid(X,X)
-    dist.sort()
-    sigma = dist[:,1:nn].mean(axis=1).mean()
-    print(sigma)
-    points2cluster, centers = spectral(X, 9, sigma) # 0.15 works
+    nn = 10
+    #dist = euclid(X,X)
+    #dist.sort()
+    #dist = dist[:,1:]
+    #sigma = dist[:,1:nn].mean(axis=1).mean()
+    #print(sigma)
+    #points2cluster, centers = spectral(X=X, k=3,
+      #                                 similarity_param=sigma,
+       #                                similarity=gaussian_kernel)
+
+    points2cluster, centers = spectral(X=X,
+                                       k=3,
+                                       similarity_param=nn,
+                                       similarity=mnn)
 
     plt.scatter(X[:,0], X[:,1], c=points2cluster)
     #plt.plot(centers[:, 0], centers[:, 1], 'og')
