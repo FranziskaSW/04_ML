@@ -125,8 +125,6 @@ def euclid(X, Y):
     :return: NxM euclidean distance matrix.
     """
 
-    # TODO: sloooooow
-
     dist = np.zeros((X.shape[0], Y.shape[0]))
     for i in range(0, X.shape[0]):
         for j in range(0, Y.shape[0]):
@@ -173,7 +171,7 @@ def kmeans_pp_init(X, k, metric):
     return center
 
 
-def kmeans(X, k, iterations=10, metric=euclid, center=euclidean_centroid, init=kmeans_pp_init):
+def kmeans(X, k, iterations=40, metric=euclid, center=euclidean_centroid, init=kmeans_pp_init):
     """
     The K-Means function, clustering the data X into k clusters.
     :param X: A NxD data matrix.
@@ -221,7 +219,7 @@ def gaussian_kernel(X, sigma):
     """
 
     # TODO: check
-    W = np.exp(-X/(2*sigma))
+    W = np.exp(-X/(2*sigma**2))
     return W
 
 
@@ -250,7 +248,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     # X.sort()
     Distance = euclid(X, X)
     Adjacency = similarity(Distance, similarity_param)
-    diag = Adjacency.sum(axis=0) - 1
+    diag = Adjacency.sum(axis=0)
     Degree = np.diag(diag)
 
     Laplacien = Degree - Adjacency   # TODO: use normalized L_sym
@@ -259,11 +257,18 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     v, U = np.linalg.eig(L_sym)
 
-    u2 = U[:, 1]
-    u2.sort()
+    v_idx = np.matrix((np.arange(v.shape[0]), v))
+    v_sort = v_idx.T.tolist()
+
+    v_sort.sort(key=lambda x: x[1])
+    v_sort = np.matrix(v_sort)
+    uk_idx = v_sort[:k,0].flatten().tolist()[0]
+    uk_idx = list(map(int, uk_idx))
+
+    T = U[:, uk_idx]
+
     # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
     # plt.bar(range(0,10), v[:10])
-    T = U[:,:k]
 
     row_sums = np.linalg.norm(T, axis=1)
     t = T / row_sums[:, np.newaxis]
@@ -279,17 +284,22 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    X = three_gaussians_example()
+    # X = three_gaussians_example()
 
-    X = circles_example()
+    # X = circles_example()
 
-    # X = apml_pic_example()
-    # idx = np.random.choice(X.shape[0], 800, replace=False)
-    # X = X[idx]
+    X = apml_pic_example()
 
     #points2cluster, centers = kmeans(X, 4)
-    points2cluster, centers = spectral(X, 4, 1)
+
+    nn = 5
+    dist = euclid(X,X)
+    dist.sort()
+    sigma = dist[:,1:nn].mean(axis=1).mean()
+    print(sigma)
+    points2cluster, centers = spectral(X, 9, sigma) # 0.15 works
+
     plt.scatter(X[:,0], X[:,1], c=points2cluster)
-    plt.plot(centers[:, 0], centers[:, 1], 'og')
+    #plt.plot(centers[:, 0], centers[:, 1], 'og')
     plt.show()
 
