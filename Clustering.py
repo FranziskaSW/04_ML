@@ -226,7 +226,7 @@ def gaussian_kernel(X, sigma):
     return W
 
 
-def mnn(X, data, m):
+def mnn(X, m):
     """
     calculate the m nearest neighbors similarity of the given distance matrix.
     :param X: A NxN distance matrix.
@@ -242,12 +242,7 @@ def mnn(X, data, m):
     for i in range(0, X.shape[0]):
         NN[i, nearest_idx[i]] += 1 # so far only one directional nn, not mutual nn
 
-    neigh = NearestNeighbors(n_neighbors=m+1, metric='euclidean')
-    neigh.fit(data)
-    A = neigh.kneighbors_graph(data)
-    NN_1 = A.toarray()
-
-    return NN, NN_1
+    return NN
 
 
 def spectral(X, k, similarity_param, similarity=gaussian_kernel):
@@ -266,7 +261,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     Distance = (Distance - Distance.mean(axis=0)) / Distance.std(axis=0)
 
-    Adj, Adjacency = similarity(X=Distance, data=X, m=similarity_param)
+    Adjacency = similarity(Distance, similarity_param)
     diag = Adjacency.sum(axis=0)
     Degree = np.diag(diag)
 
@@ -303,45 +298,83 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     return kmeans(t, k)  # TODO: does not work :-(
 
 
+def plot_similarity(X, similarity, similarity_param, points2cluster):
 
+    idx = np.random.choice(range(0,X.shape[0]), X.shape[0])
+    X_rand = X[idx]
 
+    Distance = euclid(X_rand, X_rand)
+    Adjacency_mix = similarity(Distance, similarity_param)
+
+    p2c = np.matrix((np.arange(points2cluster.shape[0]), points2cluster))
+    p2c_sort = p2c.T.tolist()
+
+    p2c_sort.sort(key=lambda x: x[1])
+
+    p2c_sort = np.matrix(p2c_sort)
+    p2c_idx = p2c_sort[:,0].flatten().tolist()[0]
+
+    X_sort = X[p2c_idx]
+    Distance = euclid(X_sort, X_sort)
+    Adjacency_sort = similarity(Distance, similarity_param)
+
+    fig1, (ax0, ax1) = plt.subplots(ncols=2, figsize=(8, 5))
+
+    ax0.set_title('Data in random order')
+    ax0.imshow(Adjacency_mix)
+
+    ax1.set_title('Data sorted according to clusters')
+    ax1.imshow(Adjacency_sort)
+
+    return fig1
 
 
 
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    X = three_gaussians_example() # gk nn 5 # mnn
+    X = three_gaussians_example() # gk nn 5 # mnn 50
 
-    X = circles_example() # gk nn 5 # mnn 10
+    X = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
-    X = apml_pic_example()
-    idx = np.random.choice(X.shape[0], 500)
+    X = apml_pic_example() # gk nn  # mnn 100... maybe even more
+    idx = np.random.choice(X.shape[0], 840)
     X = X[idx]
 
     similarity = mnn
-    similarity_param = 5
+    similarity_param = 50
 
     similarity = gaussian_kernel
     similarity_param = 0.3
 
     #points2cluster, centers = kmeans(X, 4)
 
-    nn = 20
-    #dist = euclid(X,X)
-    #dist.sort()
-    #dist = dist[:,1:]
-    #sigma = dist[:,1:nn].mean(axis=1).mean()
-    #print(sigma)
-    #points2cluster, centers = spectral(X=X, k=3,
-     #                                  similarity_param=sigma,
-      #                                 similarity=gaussian_kernel)
-
+    nn = 5
+    dist = euclid(X,X)
+    dist.sort()
+    dist = dist[:,1:]
+    sigma = dist[:,1:nn].mean(axis=1).mean()
+    print(sigma)
     points2cluster, centers = spectral(X=X, k=9,
+                                       similarity_param=sigma,
+                                       similarity=gaussian_kernel)
+
+    plot_similarity(X=X, similarity=gaussian_kernel,
+                    similarity_param=sigma,
+                    points2cluster=points2cluster)
+
+
+    nn = 50
+    points2cluster, centers = spectral(X=X, k=4,
                                        similarity_param=nn,
                                        similarity=mnn)
 
+    plot_similarity(X=X, similarity=mnn,
+                    similarity_param=nn,
+                    points2cluster=points2cluster)
+
+
     plt.scatter(X[:,0], X[:,1], c=points2cluster)
-    #plt.plot(centers[:, 0], centers[:, 1], 'og')
+    #plt.plot(centers[:, 0], centers[:, 1], 'ob')
     plt.show()
 
