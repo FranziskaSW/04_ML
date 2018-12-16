@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from sklearn.neighbors import NearestNeighbors   # TODO: remove section in mnn
 
 
 def circles_example():
@@ -128,7 +129,8 @@ def euclid(X, Y):
     dist = np.zeros((X.shape[0], Y.shape[0]))
     for i in range(0, X.shape[0]):
         for j in range(0, Y.shape[0]):
-            dist[i,j] = np.sqrt(np.dot(X[i], X[i].T) - 2 * np.dot(X[i], Y[j].T) + np.dot(Y[j], Y[j].T))
+            # dist[i,j] = np.sqrt(np.dot(X[i], X[i].T) - 2 * np.dot(X[i], Y[j].T) + np.dot(Y[j], Y[j].T))
+            dist[i,j] = np.linalg.norm(X[i] - Y[j])
 
     return dist
 
@@ -194,7 +196,8 @@ def kmeans(X, k, iterations=10, metric=euclid, center=euclidean_centroid, init=k
     # step 0: use kmeans++ to initialize k centers
     centers = init(X, k, metric)
 
-    for _ in range(0, iterations):
+    for i in range(0, iterations):
+        print('iteration ' + str(i))
         # step 1: measure distance of points to centers - assign points to the closest center
         points2cluster = metric(X, centers).argmin(axis=1)
 
@@ -223,7 +226,7 @@ def gaussian_kernel(X, sigma):
     return W
 
 
-def mnn(X, m):
+def mnn(X, data, m):
     """
     calculate the m nearest neighbors similarity of the given distance matrix.
     :param X: A NxN distance matrix.
@@ -237,9 +240,14 @@ def mnn(X, m):
 
     NN = np.zeros(X.shape)
     for i in range(0, X.shape[0]):
-        NN[nearest_idx[i],i] = 1 # so far only one directional nn, not mutual nn
+        NN[i, nearest_idx[i]] += 1 # so far only one directional nn, not mutual nn
 
-    return NN
+    neigh = NearestNeighbors(n_neighbors=m+1, metric='euclidean')
+    neigh.fit(data)
+    A = neigh.kneighbors_graph(data)
+    NN_1 = A.toarray()
+
+    return NN, NN_1
 
 
 def spectral(X, k, similarity_param, similarity=gaussian_kernel):
@@ -255,31 +263,42 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     # TODO: YOUR CODE HERE
     # X.sort()
     Distance = euclid(X, X)
-    Adjacency = similarity(Distance, similarity_param)
+
+    Distance = (Distance - Distance.mean(axis=0)) / Distance.std(axis=0)
+
+    Adj, Adjacency = similarity(X=Distance, data=X, m=similarity_param)
     diag = Adjacency.sum(axis=0)
     Degree = np.diag(diag)
 
-    Laplacien = Degree - Adjacency   # TODO: use normalized L_sym
-
-    L_sym = np.multiply(np.sqrt(diag)**(-1), np.multiply(Laplacien, np.sqrt(diag)**(-1)))
+    L = Degree - Adjacency
+    L_sym = np.multiply(np.sqrt(diag)**(-1), np.multiply(L, np.sqrt(diag)**(-1)))
+    #L_sym = np.sqrt(np.linalg.inv(Degree)) * L * np.sqrt(np.linalg.inv(Degree))
 
     v, U = np.linalg.eig(L_sym)
+    v_real = v.real
+    U_real = U.real
 
-    v_idx = np.matrix((np.arange(v.shape[0]), v))
+    v_idx = np.matrix((np.arange(v.shape[0]), v_real))
     v_sort = v_idx.T.tolist()
 
     v_sort.sort(key=lambda x: x[1])
     v_sort = np.matrix(v_sort)
+
+    mask = (~(v_sort[:,1]==0)).flatten().tolist()[0]
+    #mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
+
+    v_sort = v_sort[mask, :]
     uk_idx = v_sort[:k,0].flatten().tolist()[0]
     uk_idx = list(map(int, uk_idx))
 
-    T = U[:, uk_idx]
+    T = U_real[:, uk_idx] # no = np.linalg.norm(t, axis=1) T[~(no<=1)] idx[~(no<=1)] some rows are = 0... why? other eigenvectors? only the ones that are bigge tahn 0?
 
     # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
     # plt.bar(range(0,10), v[:10])
 
     row_sums = np.linalg.norm(T, axis=1)
     t = T / row_sums[:, np.newaxis]
+    print('now kmeans clustering')
 
     return kmeans(t, k)  # TODO: does not work :-(
 
@@ -292,26 +311,33 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    # X = three_gaussians_example() # nn 5
+    X = three_gaussians_example() # gk nn 5 # mnn
 
-    X = circles_example() # nn 5
+    X = circles_example() # gk nn 5 # mnn 10
 
-    #X = apml_pic_example()
+    X = apml_pic_example()
+    idx = np.random.choice(X.shape[0], 500)
+    X = X[idx]
+
+    similarity = mnn
+    similarity_param = 5
+
+    similarity = gaussian_kernel
+    similarity_param = 0.3
 
     #points2cluster, centers = kmeans(X, 4)
 
-    nn = 10
+    nn = 20
     #dist = euclid(X,X)
     #dist.sort()
     #dist = dist[:,1:]
     #sigma = dist[:,1:nn].mean(axis=1).mean()
     #print(sigma)
     #points2cluster, centers = spectral(X=X, k=3,
-      #                                 similarity_param=sigma,
-       #                                similarity=gaussian_kernel)
+     #                                  similarity_param=sigma,
+      #                                 similarity=gaussian_kernel)
 
-    points2cluster, centers = spectral(X=X,
-                                       k=3,
+    points2cluster, centers = spectral(X=X, k=9,
                                        similarity_param=nn,
                                        similarity=mnn)
 
