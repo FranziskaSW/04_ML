@@ -259,7 +259,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     # X.sort()
     Distance = euclid(X, X)
 
-    Distance = (Distance - Distance.mean(axis=0)) / Distance.std(axis=0)
+    # Distance = (Distance - Distance.mean(axis=0)) / Distance.std(axis=0)
 
     Adjacency = similarity(Distance, similarity_param)
     diag = Adjacency.sum(axis=0)
@@ -337,9 +337,9 @@ if __name__ == '__main__':
 
     X = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
-    X = apml_pic_example() # gk nn  # mnn 100... maybe even more
-    idx = np.random.choice(X.shape[0], 840)
-    X = X[idx]
+    # X = apml_pic_example() # gk nn  # mnn 100... maybe even more
+    # idx = np.random.choice(X.shape[0], 840)
+    # X = X[idx]
 
     similarity = mnn
     similarity_param = 50
@@ -349,32 +349,37 @@ if __name__ == '__main__':
 
     #points2cluster, centers = kmeans(X, 4)
 
-    nn = 5
-    dist = euclid(X,X)
-    dist.sort()
-    dist = dist[:,1:]
-    sigma = dist[:,1:nn].mean(axis=1).mean()
-    print(sigma)
-    points2cluster, centers = spectral(X=X, k=9,
-                                       similarity_param=sigma,
-                                       similarity=gaussian_kernel)
+    nn = 4
+    #dist = euclid(X,X)
+    #dist.sort()
+    #dist = dist[:,1:]
+    #sigma = dist[:,1:nn].mean(axis=1).mean()
+    #print(sigma)
+    #points2cluster, centers = spectral(X=X, k=4,
+     #                                  similarity_param=sigma,
+      #                                 similarity=gaussian_kernel)
 
-    plot_similarity(X=X, similarity=gaussian_kernel,
-                    similarity_param=sigma,
-                    points2cluster=points2cluster)
+    #plt.scatter(X[:,0], X[:,1], c=points2cluster)
+
+    #plot_similarity(X=X, similarity=gaussian_kernel,
+     #               similarity_param=sigma,
+      #              points2cluster=points2cluster)
 
 
-    nn = 50
+
+    nn = 10
     points2cluster, centers = spectral(X=X, k=4,
                                        similarity_param=nn,
                                        similarity=mnn)
+
+
+    plt.scatter(X[:,0], X[:,1], c=points2cluster)
 
     plot_similarity(X=X, similarity=mnn,
                     similarity_param=nn,
                     points2cluster=points2cluster)
 
 
-    plt.scatter(X[:,0], X[:,1], c=points2cluster)
     #plt.plot(centers[:, 0], centers[:, 1], 'ob')
     plt.show()
 
