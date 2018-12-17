@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from sklearn.neighbors import NearestNeighbors   # TODO: remove section in mnn
-
 
 def circles_example():
     """
@@ -23,10 +21,9 @@ def circles_example():
     circles = np.hstack((circle1, circle2, circle3, circle4))
     circles = np.array(circles.T)
 
-    # plt.plot(circles[0,:], circles[1,:], '.k')
-    # plt.show()
+    points2cluster = np.array([0]*length + [1]*length + [2]*length + [3]*length)
 
-    return circles
+    return circles, points2cluster
 
 
 def apml_pic_example(path='APML_pic.pickle'):
@@ -51,9 +48,12 @@ def three_gaussians_example():
               1: {'mean': [5, -5],
                   'cov': [[1, 0], [0, 1]]},
               2: {'mean': [10, -10],
+                  'cov': [[2, 0], [0, 2]]},
+              3: {'mean': [10, 10],
                   'cov': [[2, 0], [0, 2]]}
               }
-    mixture_idx = np.random.choice(a=3, size=N, replace=True)
+
+    mixture_idx = np.random.choice(a=4, size=N, replace=True)
 
     x_cord, y_cord = [], []
     for i in mixture_idx:
@@ -295,7 +295,9 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     t = T / row_sums[:, np.newaxis]
     print('now kmeans clustering')
 
-    return kmeans(t, k)  # TODO: does not work :-(
+    points2cluster, center = kmeans(t, k)
+
+    return points2cluster, center, t
 
 
 def plot_similarity(X, similarity, similarity_param, points2cluster):
@@ -328,6 +330,27 @@ def plot_similarity(X, similarity, similarity_param, points2cluster):
 
     return fig1
 
+def translate(p2c):
+
+    p2c_new = []
+    translate = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    translate_idx = -1
+    words = {}
+
+    for i in range(0, p2c.shape[0]):
+        val = p2c[i]
+
+        try:
+            p2c_new = p2c_new + [words[val]]
+        except KeyError:
+            translate_idx += 1
+            p2c_new = p2c_new + [translate[translate_idx]]
+            words.update({val : translate[translate_idx]})
+
+    return np.array(p2c_new)
+
+
+def silhouette(points2cluster):
 
 
 if __name__ == '__main__':
@@ -335,7 +358,7 @@ if __name__ == '__main__':
     # TODO: YOUR CODE HERE
     X = three_gaussians_example() # gk nn 5 # mnn 50
 
-    X = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
+    X, p2c_ref = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
     # X = apml_pic_example() # gk nn  # mnn 100... maybe even more
     # idx = np.random.choice(X.shape[0], 840)
@@ -367,7 +390,7 @@ if __name__ == '__main__':
 
 
 
-    nn = 10
+    nn = 11
     points2cluster, centers = spectral(X=X, k=4,
                                        similarity_param=nn,
                                        similarity=mnn)
@@ -383,3 +406,40 @@ if __name__ == '__main__':
     #plt.plot(centers[:, 0], centers[:, 1], 'ob')
     plt.show()
 
+##################### Elbow ###########################
+
+    with open('circles_data.pickle', 'rb') as handle:
+        X = pickle.load(handle)
+
+    with open('circles_p2c.pickle', 'rb') as handle:
+        p2c_ref = pickle.load(handle)
+
+    runs = {}
+    for k in range(2,11):
+
+        print(str(k) + '  clusters')
+        points2cluster, centers = kmeans(X=X, k=k)
+
+        tr = translate(points2cluster)
+
+        dist = euclid(X, centers)
+        dist = dist.min(axis=1)
+        loss = dist.sum()
+
+        runs.update({k: {'p2c': tr, 'loss': loss}
+                     })
+
+    # plot points2cluster for different k
+    fig, axes = plt.subplots(3, 3, figsize=(12, 12),
+                             subplot_kw={'xticks': [], 'yticks': []})
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+    for ax, k in zip(axes.flat, runs):
+        points2cluster = runs[k]['p2c']
+        ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
+        ax.set_title(str(k) + ' clusters')
+
+    loss = [runs[k]['loss'] for k in runs]
+    idx = range(2,11)
+    plt.plot(idx, loss)
