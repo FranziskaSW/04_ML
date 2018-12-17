@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from sklearn.metrics import silhouette_score  # TODO: delete
 
 def circles_example():
     """
@@ -350,7 +351,37 @@ def translate(p2c):
     return np.array(p2c_new)
 
 
-def silhouette(points2cluster):
+def silhouette(X, points2cluster):
+
+    assigned = np.vstack((X.T, points2cluster.T))
+    a_list, b_list = [], []
+    clusters = np.linspace(0,k-1,k)
+
+    for i in clusters:
+        mask = (assigned[2, :] == i).tolist()
+        a_i = assigned[:2, mask].T
+
+        a = euclid(a_i, a_i).mean(axis=1).sum()
+        a_list = a_list + [a]
+
+        mask_not_i = ~(assigned[2, :] == i)
+        b_j_list = []
+        clusters_without_i = np.delete(clusters, i)
+
+        for j in clusters_without_i:
+            mask_is_j = (assigned[2, :] == j).tolist()
+            b_ij = assigned[:2, mask_is_j].T
+
+            b_j = euclid(a_i, b_ij).mean(axis=1).sum()
+
+            b_j_list = b_j_list + [b_j]
+            b = np.min(np.array(b_j_list))
+
+        b_list = b_list + [b]
+
+    S = 1/k * ((np.array(b_list) - np.array(a_list))/np.array([a_list, b_list]).max(axis=0)).sum()
+
+    return S
 
 
 if __name__ == '__main__':
@@ -426,7 +457,13 @@ if __name__ == '__main__':
         dist = dist.min(axis=1)
         loss = dist.sum()
 
-        runs.update({k: {'p2c': tr, 'loss': loss}
+        S = silhouette(X, points2cluster)
+        S2 = sklearn.metrics.silhouette_score(X, points2cluster)  # TODO: delete
+
+        runs.update({k: {'p2c': tr,
+                         'loss': loss,
+                         'silhouette': S,
+                         'S2': S2}
                      })
 
     # plot points2cluster for different k
@@ -440,6 +477,15 @@ if __name__ == '__main__':
         ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
         ax.set_title(str(k) + ' clusters')
 
-    loss = [runs[k]['loss'] for k in runs]
+    fig2, (ax0, ax1) = plt.subplots(1, 2, figsize=(8,5))
+
+    silh = [runs[k]['silhouette'] for k in runs]
+    silh2 = [runs[k]['S2'] for k in runs]
     idx = range(2,11)
-    plt.plot(idx, loss)
+    #plt.plot(idx, silh)
+    ax0.plot(idx, silh2)
+    ax0.set_title('Silhouette')
+
+    loss = [runs[k]['loss'] for k in runs]
+    ax1.plot(idx, loss)
+    ax1.set_title('Loss')
