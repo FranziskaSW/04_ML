@@ -281,7 +281,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     v_sort = np.matrix(v_sort)
 
     mask = (~(v_sort[:,1]==0)).flatten().tolist()[0]
-    #mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
+    # mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
 
     v_sort = v_sort[mask, :]
     uk_idx = v_sort[:k,0].flatten().tolist()[0]
@@ -300,6 +300,16 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     return points2cluster, center, t, v_sort
 
+similarity = gaussian_kernel
+similarity_param = 0.35358367870405927
+k = 4
+
+similarity = mnn
+similarity_param = 50
+k = 4
+
+plt.scatter(X[:,0], X[:,1], c=points2cluster)
+plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
 
 def plot_similarity(X, similarity, similarity_param, points2cluster):
 
@@ -331,7 +341,7 @@ def plot_similarity(X, similarity, similarity_param, points2cluster):
 
     return fig1
 
-def translate(p2c):
+def translate(p2c):  # TODO: do I even need this?
 
     p2c_new = []
     translate = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -353,9 +363,11 @@ def translate(p2c):
 
 def silhouette(X, points2cluster):
 
+    k = points2cluster.max()
+
     assigned = np.vstack((X.T, points2cluster.T))
     a_list, b_list = [], []
-    clusters = np.linspace(0,k-1,k)
+    clusters = np.array(range(0,k+1))
 
     for i in clusters:
         mask = (assigned[2, :] == i).tolist()
@@ -379,9 +391,56 @@ def silhouette(X, points2cluster):
 
         b_list = b_list + [b]
 
-    S = 1/k * ((np.array(b_list) - np.array(a_list))/np.array([a_list, b_list]).max(axis=0)).sum()
+    S = 1/(k+1) * ((np.array(b_list) - np.array(a_list))/np.array([a_list, b_list]).max(axis=0)).sum()
 
     return S
+
+
+def choose_k(X, range):
+    runs = {}
+    for k in range:
+
+        print(str(k) + '  clusters')
+        points2cluster, centers = kmeans(X=X, k=k)
+
+        #tr = translate(points2cluster)
+
+        dist = euclid(X, centers)
+        dist = dist.min(axis=1)
+        loss = dist.sum()
+
+        S = silhouette(X, points2cluster)
+        S2 = silhouette_score(X, points2cluster)  # TODO: delete
+
+        runs.update({k: {'p2c': points2cluster,
+                         'loss': loss,
+                         'silhouette': S,
+                         'S2': S2}
+                     })
+
+    # plot points2cluster for different k
+    fig, axes = plt.subplots(3, 3, figsize=(12, 12),
+                             subplot_kw={'xticks': [], 'yticks': []})
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+    for ax, k in zip(axes.flat, runs):
+        points2cluster = runs[k]['p2c']
+        ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
+        ax.set_title(str(k) + ' clusters')
+
+    fig2, (ax0, ax1) = plt.subplots(1, 2, figsize=(8,5))
+
+    silh = [runs[k]['silhouette'] for k in runs]
+    silh2 = [runs[k]['S2'] for k in runs]
+    ax0.plot(range, silh)
+    ax0.plot(range, silh2)
+    ax0.set_title('Silhouette')
+
+    loss = [runs[k]['loss'] for k in runs]
+    ax1.plot(range, loss)
+    ax1.set_title('Loss')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -445,62 +504,31 @@ if __name__ == '__main__':
     with open('circles_p2c.pickle', 'rb') as handle:
         p2c_ref = pickle.load(handle)
 
-    runs = {}
-    for k in range(2,11):
-
-        print(str(k) + '  clusters')
-        points2cluster, centers = kmeans(X=X, k=k)
-
-        tr = translate(points2cluster)
-
-        dist = euclid(X, centers)
-        dist = dist.min(axis=1)
-        loss = dist.sum()
-
-        S = silhouette(X, points2cluster)
-        S2 = sklearn.metrics.silhouette_score(X, points2cluster)  # TODO: delete
-
-        runs.update({k: {'p2c': tr,
-                         'loss': loss,
-                         'silhouette': S,
-                         'S2': S2}
-                     })
-
-    # plot points2cluster for different k
-    fig, axes = plt.subplots(3, 3, figsize=(12, 12),
-                             subplot_kw={'xticks': [], 'yticks': []})
-
-    fig.subplots_adjust(hspace=0.3, wspace=0.05)
-
-    for ax, k in zip(axes.flat, runs):
-        points2cluster = runs[k]['p2c']
-        ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
-        ax.set_title(str(k) + ' clusters')
-
-    fig2, (ax0, ax1) = plt.subplots(1, 2, figsize=(8,5))
-
-    silh = [runs[k]['silhouette'] for k in runs]
-    silh2 = [runs[k]['S2'] for k in runs]
-    idx = range(2,11)
-    #plt.plot(idx, silh)
-    ax0.plot(idx, silh2)
-    ax0.set_title('Silhouette')
-
-    loss = [runs[k]['loss'] for k in runs]
-    ax1.plot(idx, loss)
-    ax1.set_title('Loss')
+    choose_k(X, range(2,6))
 
     nn = 5
     dist = euclid(X,X)
     dist.sort()
     dist = dist[:,1:]
-    sigma = dist[:,1:nn].mean(axis=1).mean()
+    sigma = dist[:,:nn].mean(axis=1).mean()
+    dist = dist.flatten()
+    plt.hist(dist, bins=300)
     print(sigma)
+
     points2cluster, centers, t, v_sort = spectral(X=X, k=4,
                                           similarity_param=sigma,
                                           similarity=gaussian_kernel)
 
-
     plt.scatter(X[:,0], X[:,1], c=points2cluster)
+    plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
 
-    plt.bar(range(0,10), v_sort[:10, 1].flatten().tolist()[0])
+
+    ###########################microarray###################################
+
+
+    data_path = 'microarray_data.pickle'
+    with open(data_path, 'rb') as f:
+        data = pickle.load(f)
+
+    idx = np.random.choice(data.shape[0], 840)  # mnn nn 50 for 840 data
+    X = data[idx]
