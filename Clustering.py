@@ -42,7 +42,7 @@ def apml_pic_example(path='APML_pic.pickle'):
     return apml
 
 
-def three_gaussians_example():
+def four_gaussians_example():
     N = 840
     params = {0: {'mean': [1, -1],
                   'cov': [[1, 0], [0, 1]]},
@@ -290,7 +290,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     T = U_real[:, uk_idx] # no = np.linalg.norm(t, axis=1) T[~(no<=1)] idx[~(no<=1)] some rows are = 0... why? other eigenvectors? only the ones that are bigge tahn 0?
 
     # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
-    # plt.bar(range(0,10), v[:10])
+    # plt.bar(range(0,10), v_sort[:10, 1].flatten().tolist()[0])
 
     row_sums = np.linalg.norm(T, axis=1)
     t = T / row_sums[:, np.newaxis]
@@ -298,7 +298,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     points2cluster, center = kmeans(t, k)
 
-    return points2cluster, center, t
+    return points2cluster, center, t, v_sort
 
 
 def plot_similarity(X, similarity, similarity_param, points2cluster):
@@ -387,7 +387,7 @@ def silhouette(X, points2cluster):
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
-    X = three_gaussians_example() # gk nn 5 # mnn 50
+    X = four_gaussians_example() # gk nn 5 # mnn 50
 
     X, p2c_ref = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
@@ -399,7 +399,7 @@ if __name__ == '__main__':
     similarity_param = 50
 
     similarity = gaussian_kernel
-    similarity_param = 0.3
+    similarity_param = 0.37
 
     #points2cluster, centers = kmeans(X, 4)
 
@@ -437,7 +437,7 @@ if __name__ == '__main__':
     #plt.plot(centers[:, 0], centers[:, 1], 'ob')
     plt.show()
 
-##################### Elbow ###########################
+##################### Choosing K ###########################
 
     with open('circles_data.pickle', 'rb') as handle:
         X = pickle.load(handle)
@@ -489,3 +489,18 @@ if __name__ == '__main__':
     loss = [runs[k]['loss'] for k in runs]
     ax1.plot(idx, loss)
     ax1.set_title('Loss')
+
+    nn = 5
+    dist = euclid(X,X)
+    dist.sort()
+    dist = dist[:,1:]
+    sigma = dist[:,1:nn].mean(axis=1).mean()
+    print(sigma)
+    points2cluster, centers, t, v_sort = spectral(X=X, k=4,
+                                          similarity_param=sigma,
+                                          similarity=gaussian_kernel)
+
+
+    plt.scatter(X[:,0], X[:,1], c=points2cluster)
+
+    plt.bar(range(0,10), v_sort[:10, 1].flatten().tolist()[0])
