@@ -512,13 +512,13 @@ if __name__ == '__main__':
 
     choose_k(X, range(2,6))
 
-    nn = 10
-    dist = Distance #dist = euclid(X,X)
+    nn = 11
+    dist = euclid(X,X)
     dist.sort()
     dist = dist[:,1:]
     sigma = dist[:,:nn].mean(axis=1).mean()
-    dist = dist.flatten()
-    plt.hist(dist, bins=300)
+    #dist = dist.flatten()
+    #plt.hist(dist, bins=300)
     print(sigma)
 
     points2cluster, centers, t, v_sort = spectral(X=X, k=4,
