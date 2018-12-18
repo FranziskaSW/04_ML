@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from sklearn.metrics import silhouette_score  # TODO: delete
+import scipy
 
 def circles_example():
     """
@@ -130,8 +131,7 @@ def euclid(X, Y):
     dist = np.zeros((X.shape[0], Y.shape[0]))
     for i in range(0, X.shape[0]):
         for j in range(0, Y.shape[0]):
-            # dist[i,j] = np.sqrt(np.dot(X[i], X[i].T) - 2 * np.dot(X[i], Y[j].T) + np.dot(Y[j], Y[j].T))
-            dist[i,j] = np.linalg.norm(X[i] - Y[j])
+            dist[i,j] = np.sqrt(np.dot(X[i], X[i].T) - 2 * np.dot(X[i], Y[j].T) + np.dot(Y[j], Y[j].T))
 
     return dist
 
@@ -223,7 +223,7 @@ def gaussian_kernel(X, sigma):
     """
 
     # TODO: check
-    W = np.exp(-X/(2*sigma**2))
+    W = np.exp(-(X**2)/(2*(sigma**2)))
     return W
 
 
@@ -266,33 +266,37 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     diag = Adjacency.sum(axis=0)
     Degree = np.diag(diag)
 
-    L = Degree - Adjacency
-    L_sym = np.multiply(np.sqrt(diag)**(-1), np.multiply(L, np.sqrt(diag)**(-1)))
-    #L_sym = np.sqrt(np.linalg.inv(Degree)) * L * np.sqrt(np.linalg.inv(Degree))
+    # L = Degree - Adjacency
+    # L_sym2 = np.multiply(np.sqrt(diag)**(-1), np.multiply(L, np.sqrt(diag)**(-1)))
+    # L_sym = np.sqrt(np.linalg.inv(Degree)) * L * np.sqrt(np.linalg.inv(Degree))
 
-    v, U = np.linalg.eig(L_sym)
-    v_real = v.real
-    U_real = U.real
+    Deg_inv = np.diag(1/np.sqrt(diag))
+    L_sym = np.diag(np.ones(Degree.shape[0])) - np.matmul(Deg_inv, np.matmul(Adjacency, Deg_inv))
 
-    v_idx = np.matrix((np.arange(v.shape[0]), v_real))
-    v_sort = v_idx.T.tolist()
+    v, U = scipy.linalg.eigh(L_sym)
+    #v_real = v
+    #U_real = U
 
-    v_sort.sort(key=lambda x: x[1])
-    v_sort = np.matrix(v_sort)
+    #v_idx = np.matrix((np.arange(v.shape[0]), v_real))
+    #v_sort = v_idx.T.tolist()
 
-    mask = (~(v_sort[:,1]==0)).flatten().tolist()[0]
-    # mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
+    #v_sort.sort(key=lambda x: x[1])
+    #v_sort = np.matrix(v_sort)
 
-    v_sort = v_sort[mask, :]
-    uk_idx = v_sort[:k,0].flatten().tolist()[0]
-    uk_idx = list(map(int, uk_idx))
+    #mask = (~(v_sort[:,1]==0)).flatten().tolist()[0]
+    #mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
 
-    T = U_real[:, uk_idx] # no = np.linalg.norm(t, axis=1) T[~(no<=1)] idx[~(no<=1)] some rows are = 0... why? other eigenvectors? only the ones that are bigge tahn 0?
+    #v_sort = v_sort[mask, :]
+    #uk_idx = v_sort[:k,0].flatten().tolist()[0]
+    #uk_idx = list(map(int, uk_idx))
 
+    #T = U_real[:, uk_idx] # no = np.linalg.norm(t, axis=1) T[~(no<=1)] idx[~(no<=1)] some rows are = 0... why? other eigenvectors? only the ones that are bigge tahn 0?
+
+    T = U[:, :k]
     # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
     # plt.bar(range(0,10), v_sort[:10, 1].flatten().tolist()[0])
 
-    row_sums = np.linalg.norm(T, axis=1)
+    row_sums = np.linalg.norm(T, axis=1) # changed np.linalg.norm or np.sum
     t = T / row_sums[:, np.newaxis]
     print('now kmeans clustering')
 
@@ -300,16 +304,18 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     return points2cluster, center, t, v_sort
 
+'''
 similarity = gaussian_kernel
-similarity_param = 0.35358367870405927
-k = 4
+similarity_param = 5 #0.17 #0.35358367870405927
+k = 9
 
 similarity = mnn
-similarity_param = 50
-k = 4
+similarity_param = 20
+k = 9
 
 plt.scatter(X[:,0], X[:,1], c=points2cluster)
-plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
+plt.bar(range(0,30), v[:30])
+'''
 
 def plot_similarity(X, similarity, similarity_param, points2cluster):
 
@@ -443,6 +449,32 @@ def choose_k(X, range):
     plt.show()
 
 
+'''
+if __name__ == '__main__':
+
+    data_path = 'microarray_data.pickle'
+    with open(data_path, 'rb') as f:
+        X = pickle.load(f)
+
+    nn = 50
+    dist = euclid(X,X)
+    dist.sort()
+    dist = dist[:,1:]
+    sigma = dist[:,:nn].mean(axis=1).mean()
+    dist = dist.flatten()
+    #plt.hist(dist, bins=300)
+    print(sigma)
+
+    points2cluster, centers, t, v_sort = spectral(X=X, k=12,
+                                          similarity_param=nn,
+                                          similarity=mnn)
+
+    #plt.scatter(X[:,0], X[:,1], c=points2cluster)
+    plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
+    plt.show()
+
+'''
+
 if __name__ == '__main__':
 
     # TODO: YOUR CODE HERE
@@ -450,9 +482,9 @@ if __name__ == '__main__':
 
     X, p2c_ref = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
-    # X = apml_pic_example() # gk nn  # mnn 100... maybe even more
-    # idx = np.random.choice(X.shape[0], 840)
-    # X = X[idx]
+    X = apml_pic_example() # gk nn  # mnn 100... maybe even more
+    idx = np.random.choice(X.shape[0], 1040)
+    X = X[idx]
 
     similarity = mnn
     similarity_param = 50
