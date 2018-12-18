@@ -25,7 +25,7 @@ def circles_example():
 
     points2cluster = np.array([0]*length + [1]*length + [2]*length + [3]*length)
 
-    return circles, points2cluster
+    return circles
 
 
 def apml_pic_example(path='APML_pic.pickle'):
@@ -269,6 +269,7 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     Adjacency = similarity(Distance, similarity_param)
     diag = Adjacency.sum(axis=0)
+    diag[(diag==0)] = 1   # for a point that was no mutual nearest neighbor assign 1 because would break with 0
     Degree = np.diag(diag)
 
     Deg_inv = np.diag(1/np.sqrt(diag))
@@ -277,22 +278,19 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     T = U[:, :k]
     row_sums = np.linalg.norm(T, axis=1)
-    #row_sums = np.sum(T, axis=1)
     t = T / row_sums[:, np.newaxis]
     print('now kmeans clustering')
     points2cluster, center = kmeans(t, k)
-
-    plt.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap='tab10')
 
     return points2cluster, center, t, v
 
 '''
 similarity = gaussian_kernel
-similarity_param = 0.17 #0.35358367870405927
-k = 4
+similarity_param = 5 # 0.17 #0.35358367870405927
+k = 9
 
 similarity = mnn
-similarity_param = 20
+similarity_param = 15
 k = 9
 
 plt.scatter(X[:,0], X[:,1], c=points2cluster)
@@ -358,19 +356,20 @@ def silhouette(X, points2cluster):
     clusters = np.array(range(0,k+1))
 
     for i in clusters:
-        mask = (assigned[2, :] == i).tolist()
-        a_i = assigned[:2, mask].T
+        mask = (assigned[-1, :] == i).tolist()
+        a_i = assigned[:-1, mask].T
 
         a = euclid(a_i, a_i).mean(axis=1).sum()
         a_list = a_list + [a]
 
-        mask_not_i = ~(assigned[2, :] == i)
         b_j_list = []
         clusters_without_i = np.delete(clusters, i)
 
+        b = 0
+
         for j in clusters_without_i:
-            mask_is_j = (assigned[2, :] == j).tolist()
-            b_ij = assigned[:2, mask_is_j].T
+            mask_is_j = (assigned[-1, :] == j).tolist()
+            b_ij = assigned[:-1, mask_is_j].T
 
             b_j = euclid(a_i, b_ij).mean(axis=1).sum()
 
@@ -384,7 +383,76 @@ def silhouette(X, points2cluster):
     return S
 
 
-def choose_k(X, range):
+def choose_k_spectral(X, values, similarity_param, similarity):
+    runs = {}
+    for k in values:
+
+        print(str(k) + '  clusters')
+        points2cluster, centers, t, v = spectral(X=X, k=k,
+                                                 similarity_param=similarity_param,
+                                                 similarity=similarity)
+
+
+        S = silhouette(t, points2cluster)
+        S2 = silhouette_score(t, points2cluster)  # TODO: delete
+
+        runs.update({k: {'p2c': points2cluster,
+                         'silhouette': S,
+                         'S2': S2}
+                     })
+
+    # plot points2cluster for different k
+    fig, axes = plt.subplots(3, 3, figsize=(12, 12),
+                             subplot_kw={'xticks': [], 'yticks': []})
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+    for ax, k in zip(axes.flat, runs):
+        points2cluster = runs[k]['p2c']
+        ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
+        ax.set_title(str(k) + ' clusters')
+
+    fig2, (ax0) = plt.subplots(1, 1, figsize=(8,5))
+
+    silh = [runs[k]['silhouette'] for k in runs]
+    silh2 = [runs[k]['S2'] for k in runs]
+    ax0.plot(values, silh)
+    ax0.plot(values, silh2)
+    ax0.set_title('Silhouette')
+
+    return fig, fig2
+
+
+def choose_m_mnn(X, values, k):
+    runs = {}
+    for m in values:
+
+        print(str(m) + '  neighbors')
+        points2cluster, centers, t, v = spectral(X=X, k=k,
+                                                 similarity_param=m,
+                                                 similarity=mnn)
+
+
+        runs.update({m: {'p2c': points2cluster}
+                         #'silhouette': S,
+                         #'S2': S2}
+                     })
+
+    # plot points2cluster for different m
+    fig, axes = plt.subplots(3, 3, figsize=(12, 12),
+                             subplot_kw={'xticks': [], 'yticks': []})
+
+    fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+    for ax, m in zip(axes.flat, runs):
+        points2cluster = runs[m]['p2c']
+        ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Set1'))
+        ax.set_title(str(m) + ' neighbors')
+
+    return fig
+
+
+def choose_k_kmean(X, range):
     runs = {}
     for k in range:
 
@@ -457,17 +525,101 @@ if __name__ == '__main__':
 
 '''
 
+def load_data():
+    circles = circles_example()
+
+    apml = apml_pic_example()
+
+    idx = np.random.choice(apml.shape[0], 840)
+    apml_small = apml[idx]
+
+    data_path = 'microarray_data.pickle'
+    with open(data_path, 'rb') as f:
+        microarray = pickle.load(f)
+
+    microarray_small = microarray[idx]
+
+    data = {'circles': {'similarity_param': {'gaussian': 0.17,
+                                       'mnn': 14},
+                        'k': 4,
+                        'data': circles},
+            'apml': {'similarity_param': {'gaussian': 10,
+                                    'mnn': 14},
+                     'k': 9,
+                     'data': apml},
+            'apml_small': {'similarity_param': {'gaussian': 10,
+                                    'mnn': 14},
+                           'k': 9,
+                           'data': apml_small},
+            'microarray': {'similarity_param': {'gaussian': 5,
+                                    'mnn': 14},
+                           'k': 13,
+                           'data': microarray},
+            'microarray_small': {'similarity_param': {'gaussian': 5,
+                                                'mnn': 14},
+                           'k': 13,
+                           'data': microarray_small}}
+    return data
+
+
+def get_sigma(X, nn):
+
+    dist = euclid(X, X)
+    dist.sort()
+    dist = dist[:, 1:]
+    sigma = dist[:, :nn].mean(axis=1).mean()
+    # dist = dist.flatten()
+    # plt.hist(dist, bins=300)
+    print(sigma)
+
+    return sigma
+
+
 if __name__ == '__main__':
 
-    # TODO: YOUR CODE HERE
-    X = four_gaussians_example() # gk nn 5 # mnn 50
+    data = load_data()
 
-    X, p2c_ref = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
+    dataset = 'apml_small'
+    similarity = 'mnn'
+    X = data[dataset]['data']
+    k = data[dataset]['k']
+    similarity_param = data[dataset]['similarity_param'][similarity]
 
-    X = apml_pic_example() # gk nn  # mnn 100... maybe even more
-    idx = np.random.choice(X.shape[0], 840)
-    X = X[idx]
+    similarity = mnn
 
+    # similarity_param = get_sigma(X=X, nn=nn)
+
+    # fig1 = choose_m_mnn(X=X, values=[10, 14, 20, 30], k=k)  # [12, 14, 16, 18, 20, 22, 24, 26, 28])
+
+    # fig2, fig3 = choose_k_spectral(X, values=[2, 3, 4, 6], #[2, 3, 4, 5, 6, 7],
+     #                               similarity_param=similarity_param,
+      #                              similarity=similarity)
+
+    # points2cluster, cdfa, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
+    # fig4 = plot_similarity(X=X, similarity=similarity, similarity_param=similarity_param, points2cluster=points2cluster)
+
+    dataset = 'apml'
+    similarity = 'mnn'
+    X = data[dataset]['data']
+    k = data[dataset]['k']
+    similarity_param = data[dataset]['similarity_param'][similarity]
+
+    similarity = mnn
+
+    points2cluster, centers, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
+    plt.bar(range(0,30), v[:30])
+    plt.show()
+
+
+#   points2cluster, cdfs
+
+
+
+
+'''    
+    points2cluster, centers, t, v_sort = spectral(X=X, k=4,
+                                          similarity_param=sigma,
+                                          similarity=gaussian_kernel)
     similarity = mnn
     similarity_param = 50
 
@@ -547,3 +699,5 @@ if __name__ == '__main__':
 
     idx = np.random.choice(data.shape[0], 840)  # mnn nn 50 for 840 data
     X = data[idx]
+
+'''
