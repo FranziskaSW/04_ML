@@ -132,7 +132,6 @@ def euclid(X, Y):
     for i in range(0, X.shape[0]):
         for j in range(0, Y.shape[0]):
             dist[i,j] = np.sqrt(np.dot(X[i], X[i].T) - 2 * np.dot(X[i], Y[j].T) + np.dot(Y[j], Y[j].T))
-
     return dist
 
 
@@ -164,7 +163,8 @@ def kmeans_pp_init(X, k, metric):
 
     # step 2: choose new center with probability ~ D(x)**2
     for _ in range(1,k):
-        t = metric(center, X)      # distance between data points and center that already were chosen
+        t = metric(center, X) # distance between data points and center that already were chosen
+        t = np.nan_to_num(t)
         t = t.min(axis=0)          # we are only interested in the distance to the closest center
         t_sq = np.multiply(t, t)   #
         w = t_sq / t_sq.sum()      # probability (weight) for the choice of the data point as new center
@@ -196,6 +196,7 @@ def kmeans(X, k, iterations=10, metric=euclid, center=euclidean_centroid, init=k
     # TODO: YOUR CODE HERE
     # step 0: use kmeans++ to initialize k centers
     centers = init(X, k, metric)
+    print('init over - now kmeans')
 
     for i in range(0, iterations):
         print('iteration ' + str(i))
@@ -256,53 +257,26 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     :return: clustering, as in the kmeans implementation.
     """
 
-    # TODO: YOUR CODE HERE
-    # X.sort()
     Distance = euclid(X, X)
 
-    # Distance = (Distance - Distance.mean(axis=0)) / Distance.std(axis=0)
+
 
     Adjacency = similarity(Distance, similarity_param)
-    diag = Adjacency.sum(axis=0)
+    diag = Adjacency.sum(axis=1)
     Degree = np.diag(diag)
 
-    # L = Degree - Adjacency
-    # L_sym2 = np.multiply(np.sqrt(diag)**(-1), np.multiply(L, np.sqrt(diag)**(-1)))
-    # L_sym = np.sqrt(np.linalg.inv(Degree)) * L * np.sqrt(np.linalg.inv(Degree))
-
     Deg_inv = np.diag(1/np.sqrt(diag))
-    L_sym = np.diag(np.ones(Degree.shape[0])) - np.matmul(Deg_inv, np.matmul(Adjacency, Deg_inv))
-
+    L_sym = np.diag(np.ones(Degree.shape[0])) - np.matmul(Deg_inv.T, np.matmul(Adjacency, Deg_inv))
     v, U = scipy.linalg.eigh(L_sym)
-    #v_real = v
-    #U_real = U
-
-    #v_idx = np.matrix((np.arange(v.shape[0]), v_real))
-    #v_sort = v_idx.T.tolist()
-
-    #v_sort.sort(key=lambda x: x[1])
-    #v_sort = np.matrix(v_sort)
-
-    #mask = (~(v_sort[:,1]==0)).flatten().tolist()[0]
-    #mask = (v_sort[:, 1] > 0).flatten().tolist()[0]
-
-    #v_sort = v_sort[mask, :]
-    #uk_idx = v_sort[:k,0].flatten().tolist()[0]
-    #uk_idx = list(map(int, uk_idx))
-
-    #T = U_real[:, uk_idx] # no = np.linalg.norm(t, axis=1) T[~(no<=1)] idx[~(no<=1)] some rows are = 0... why? other eigenvectors? only the ones that are bigge tahn 0?
 
     T = U[:, :k]
-    # plt.plot(range(0,840), u2)  # when X.sort(axis=0) this is Fiedler Vector - maybe does not have to be sorted
-    # plt.bar(range(0,10), v_sort[:10, 1].flatten().tolist()[0])
-
-    row_sums = np.linalg.norm(T, axis=1) # changed np.linalg.norm or np.sum
+    row_sums = np.linalg.norm(T, axis=1)
+    #row_sums = np.sum(T, axis=1)
     t = T / row_sums[:, np.newaxis]
     print('now kmeans clustering')
-
     points2cluster, center = kmeans(t, k)
 
-    return points2cluster, center, t, v_sort
+    return points2cluster, center, t, v
 
 '''
 similarity = gaussian_kernel
@@ -483,7 +457,7 @@ if __name__ == '__main__':
     X, p2c_ref = circles_example() # gk nn 5 # mnn 10, 50 wie kmeans
 
     X = apml_pic_example() # gk nn  # mnn 100... maybe even more
-    idx = np.random.choice(X.shape[0], 1040)
+    idx = np.random.choice(X.shape[0], 840)
     X = X[idx]
 
     similarity = mnn
@@ -538,8 +512,8 @@ if __name__ == '__main__':
 
     choose_k(X, range(2,6))
 
-    nn = 5
-    dist = euclid(X,X)
+    nn = 10
+    dist = Distance #dist = euclid(X,X)
     dist.sort()
     dist = dist[:,1:]
     sigma = dist[:,:nn].mean(axis=1).mean()
@@ -556,7 +530,8 @@ if __name__ == '__main__':
 
 
     ###########################microarray###################################
-
+    #with open('apml_840_sig5.pickle', 'wb') as handle:
+     #   pickle.dump(X, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     data_path = 'microarray_data.pickle'
     with open(data_path, 'rb') as f:
