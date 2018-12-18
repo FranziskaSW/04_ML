@@ -237,14 +237,22 @@ def mnn(X, m):
     """
 
     # TODO: YOUR CODE HERE
-    dist_idx = np.argsort(X, axis=1)
-    nearest_idx = dist_idx[:, :(m+1)]
+    dist_idx_1 = np.argsort(X, axis=1)
+    nearest_idx_1 = dist_idx_1[:, :(m+1)]
+
+    dist_idx_0 = np.argsort(X, axis=0)
+    nearest_idx_0 = dist_idx_0[:(m+1), :]
 
     NN = np.zeros(X.shape)
     for i in range(0, X.shape[0]):
-        NN[i, nearest_idx[i]] += 1 # so far only one directional nn, not mutual nn
+        NN[i, nearest_idx_1[i]] += 1
+    for j in range(0, X.shape[0]):
+        NN[nearest_idx_0[:,j], j] += 1
 
-    return NN
+    NN = NN - 2*np.diag(np.ones(X.shape[0]))
+    t = (NN==2).astype(int)
+
+    return t
 
 
 def spectral(X, k, similarity_param, similarity=gaussian_kernel):
@@ -259,10 +267,8 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
 
     Distance = euclid(X, X)
 
-
-
     Adjacency = similarity(Distance, similarity_param)
-    diag = Adjacency.sum(axis=1)
+    diag = Adjacency.sum(axis=0)
     Degree = np.diag(diag)
 
     Deg_inv = np.diag(1/np.sqrt(diag))
@@ -276,12 +282,14 @@ def spectral(X, k, similarity_param, similarity=gaussian_kernel):
     print('now kmeans clustering')
     points2cluster, center = kmeans(t, k)
 
+    plt.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap='tab10')
+
     return points2cluster, center, t, v
 
 '''
 similarity = gaussian_kernel
-similarity_param = 5 #0.17 #0.35358367870405927
-k = 9
+similarity_param = 0.17 #0.35358367870405927
+k = 4
 
 similarity = mnn
 similarity_param = 20
