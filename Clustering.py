@@ -394,7 +394,7 @@ def choose_k_spectral(X, values, similarity_param, similarity):
 
 
         S = silhouette(t, points2cluster)
-        S2 = silhouette_score(t, points2cluster)  # TODO: delete
+        S2 = 0 #silhouette_score(t, points2cluster)  # TODO: delete
 
         runs.update({k: {'p2c': points2cluster,
                          'silhouette': S,
@@ -459,8 +459,6 @@ def choose_k_kmean(X, range):
         print(str(k) + '  clusters')
         points2cluster, centers = kmeans(X=X, k=k)
 
-        #tr = translate(points2cluster)
-
         dist = euclid(X, centers)
         dist = dist.min(axis=1)
         loss = dist.sum()
@@ -496,34 +494,9 @@ def choose_k_kmean(X, range):
     loss = [runs[k]['loss'] for k in runs]
     ax1.plot(range, loss)
     ax1.set_title('Loss')
-    plt.show()
 
+    return fig1, fig2
 
-'''
-if __name__ == '__main__':
-
-    data_path = 'microarray_data.pickle'
-    with open(data_path, 'rb') as f:
-        X = pickle.load(f)
-
-    nn = 50
-    dist = euclid(X,X)
-    dist.sort()
-    dist = dist[:,1:]
-    sigma = dist[:,:nn].mean(axis=1).mean()
-    dist = dist.flatten()
-    #plt.hist(dist, bins=300)
-    print(sigma)
-
-    points2cluster, centers, t, v_sort = spectral(X=X, k=12,
-                                          similarity_param=nn,
-                                          similarity=mnn)
-
-    #plt.scatter(X[:,0], X[:,1], c=points2cluster)
-    plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
-    plt.show()
-
-'''
 
 def load_data():
     circles = circles_example()
@@ -538,6 +511,8 @@ def load_data():
         microarray = pickle.load(f)
 
     microarray_small = microarray[idx]
+
+    four_gaussians = four_gaussians_example()
 
     data = {'circles': {'similarity_param': {'gaussian': 0.17,
                                        'mnn': 14},
@@ -558,7 +533,11 @@ def load_data():
             'microarray_small': {'similarity_param': {'gaussian': 5,
                                                 'mnn': 14},
                            'k': 13,
-                           'data': microarray_small}}
+                           'data': microarray_small},
+            'four_gaussians': {'similarity_param': {'gaussian': 10,
+                                                'mnn': 20},
+                           'k': 4,
+                           'data': four_gaussians}}
     return data
 
 
@@ -598,106 +577,82 @@ if __name__ == '__main__':
     # points2cluster, cdfa, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
     # fig4 = plot_similarity(X=X, similarity=similarity, similarity_param=similarity_param, points2cluster=points2cluster)
 
-    dataset = 'apml'
+    dataset = 'microarray_small'
     similarity = 'mnn'
     X = data[dataset]['data']
     k = data[dataset]['k']
-    similarity_param = data[dataset]['similarity_param'][similarity]
+    similarity_param = 14 #  data[dataset]['similarity_param'][similarity]
 
     similarity = mnn
 
-    points2cluster, centers, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
-    plt.bar(range(0,30), v[:30])
+    fig1, fig2 = choose_k_spectral(X=X, values=[11, 12, 13, 14, 15, 16],
+                                   similarity=similarity, similarity_param=similarity_param)
+
+    # points2cluster, centers, t, v = spectral(X, 12, similarity_param=similarity_param, similarity=similarity)
+    # plt.bar(range(0,30), v[:30])
+    #
+    # with open('microarray_p2c_mnn.pickle', 'wb') as handle:
+    #     pickle.dump(points2cluster, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # with open('microarray_v_mnn.pickle', 'wb') as handle:
+    #    pickle.dump(v, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    #
+    # similarity = 'gaussian'
+    # X = data[dataset]['data']
+    # k = data[dataset]['k']
+    # similarity_param = data[dataset]['similarity_param'][similarity]
+    #
+    # dist = euclid(X,X)
+    # dist.sort()
+    # dist = dist[:,1:]
+    #
+    # nn = 5
+    # sigma = dist[:,:nn].mean(axis=1).mean()
+    # #dist = dist.flatten()
+    # #plt.hist(dist, bins=300)
+    # print(sigma)
+    #
+    # similarity_param = 6.213356
+    # similarity = gaussian_kernel
+    #
+    # # points2cluster, centers, t, v = spectral(X, 12, similarity_param=similarity_param, similarity=similarity)
+    # # plt.bar(range(0,30), v[:30])
+    # # plt.show()
+    #
+    # with open('microarray_p2c_guassian.pickle', 'wb') as handle:
+    #     pickle.dump(points2cluster, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # with open('microarray_v_guassian.pickle', 'wb') as handle:
+    #    pickle.dump(v, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    #
+    # with open('microarray_v_guassian.pickle', 'rb') as f:
+    #     v1 = pickle.load(f)
+    # with open('microarray_v_mnn.pickle', 'rb') as f:
+    #     v2 = pickle.load(f)
+
+    dataset = 'four_gaussians'
+    X = data[dataset]['data']
+    k = data[dataset]['k']
+
+    # points2cluster, centers = kmeans(X=X, k=k)
+    # plt.scatter(X[:,0], X[:,1], c=points2cluster)
+    #
+    # fig5, fig6 = choose_k_kmean(X, [2,3,4,5,6,7,8,9,10])
+
+    # points2cluster, centers, t, v = spectral(X, 12, similarity_param=similarity_param, similarity=similarity)
+
+    # similarity = 'mnn'
+    # similarity_param = data[dataset]['similarity_param'][similarity]
+    # similarity = mnn
+    # points2cluster, centers, t, v = spectral(X=X, k=4, similarity_param=similarity_param, similarity=similarity)
+
+    #
+    # similarity = 'gaussian'
+    # nn = 5
+    # similarity_param = get_sigma(X, nn)
+    # similarity = gaussian_kernel
+    # points2cluster, centers, t, v = spectral(X=X, k=4, similarity_param=similarity_param, similarity=similarity)
+    #
+    # plt.scatter(X[:,0], X[:,1], c=points2cluster)
+
     plt.show()
-
-
-#   points2cluster, cdfs
-
-
-
-
-'''    
-    points2cluster, centers, t, v_sort = spectral(X=X, k=4,
-                                          similarity_param=sigma,
-                                          similarity=gaussian_kernel)
-    similarity = mnn
-    similarity_param = 50
-
-    similarity = gaussian_kernel
-    similarity_param = 0.37
-
-    #points2cluster, centers = kmeans(X, 4)
-
-    nn = 4
-    #dist = euclid(X,X)
-    #dist.sort()
-    #dist = dist[:,1:]
-    #sigma = dist[:,1:nn].mean(axis=1).mean()
-    #print(sigma)
-    #points2cluster, centers = spectral(X=X, k=4,
-     #                                  similarity_param=sigma,
-      #                                 similarity=gaussian_kernel)
-
-    #plt.scatter(X[:,0], X[:,1], c=points2cluster)
-
-    #plot_similarity(X=X, similarity=gaussian_kernel,
-     #               similarity_param=sigma,
-      #              points2cluster=points2cluster)
-
-
-
-    nn = 11
-    points2cluster, centers = spectral(X=X, k=4,
-                                       similarity_param=nn,
-                                       similarity=mnn)
-
-
-    plt.scatter(X[:,0], X[:,1], c=points2cluster)
-
-    plot_similarity(X=X, similarity=mnn,
-                    similarity_param=nn,
-                    points2cluster=points2cluster)
-
-
-    #plt.plot(centers[:, 0], centers[:, 1], 'ob')
-    plt.show()
-
-##################### Choosing K ###########################
-
-    with open('circles_data.pickle', 'rb') as handle:
-        X = pickle.load(handle)
-
-    with open('circles_p2c.pickle', 'rb') as handle:
-        p2c_ref = pickle.load(handle)
-
-    choose_k(X, range(2,6))
-
-    nn = 11
-    dist = euclid(X,X)
-    dist.sort()
-    dist = dist[:,1:]
-    sigma = dist[:,:nn].mean(axis=1).mean()
-    #dist = dist.flatten()
-    #plt.hist(dist, bins=300)
-    print(sigma)
-
-    points2cluster, centers, t, v_sort = spectral(X=X, k=4,
-                                          similarity_param=sigma,
-                                          similarity=gaussian_kernel)
-
-    plt.scatter(X[:,0], X[:,1], c=points2cluster)
-    plt.bar(range(0,30), v_sort[:30, 1].flatten().tolist()[0])
-
-
-    ###########################microarray###################################
-    #with open('apml_840_sig5.pickle', 'wb') as handle:
-     #   pickle.dump(X, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    data_path = 'microarray_data.pickle'
-    with open(data_path, 'rb') as f:
-        data = pickle.load(f)
-
-    idx = np.random.choice(data.shape[0], 840)  # mnn nn 50 for 840 data
-    X = data[idx]
-
-'''
