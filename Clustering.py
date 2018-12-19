@@ -554,6 +554,45 @@ def get_sigma(X, nn):
     return sigma
 
 
+def tSNE_vs_PCA(data, tags, n_plot):
+    ## PCA
+
+    mu = data.mean(axis=0)
+    U, s, V = np.linalg.svd(data - mu, full_matrices=False)
+    Zpca = np.dot(data - mu, V.transpose())
+
+    time_start = time.time()
+    tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
+    tsne_results = tsne.fit_transform(data)
+
+    print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
+
+    fig1, (ax0, ax1) = plt.subplots(ncols=2, figsize=(8, 5))
+    ax0.set_title('PCA')
+    ax0.scatter(Zpca[:n_plot, 0], Zpca[:n_plot, 1], c=tags[:n_plot], s=5, cmap='tab10')
+    ax0.set_xticks([])
+    ax0.set_yticks([])
+
+    ax1.set_title('t-SNE')
+    im = ax1.scatter(tsne_results[:n_plot, 0], tsne_results[:n_plot, 1], c=tags[:n_plot], s=5, cmap='tab10')
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+
+    axins = inset_axes(ax1,
+                       width="5%",  # width = 10% of parent_bbox width
+                       height="100%",  # height : 50%
+                       loc='lower left',
+                       bbox_to_anchor=(1.05, 0., 1, 1),
+                       bbox_transform=ax1.transAxes,
+                       borderpad=0,
+                       )
+
+    fig1.colorbar(im, cax=axins)  # , ax=ax1)
+    fig1.tight_layout()
+
+    return fig1
+
+
 if __name__ == '__main__':
 
     data = load_data()
@@ -584,9 +623,9 @@ if __name__ == '__main__':
     similarity_param = 14 #  data[dataset]['similarity_param'][similarity]
 
     similarity = mnn
-
-    fig1, fig2 = choose_k_spectral(X=X, values=[11, 12, 13, 14, 15, 16],
-                                   similarity=similarity, similarity_param=similarity_param)
+    #
+    # fig1, fig2 = choose_k_spectral(X=X, values=[11, 12, 13, 14, 15, 16],
+    #                                similarity=similarity, similarity_param=similarity_param)
 
     # points2cluster, centers, t, v = spectral(X, 12, similarity_param=similarity_param, similarity=similarity)
     # plt.bar(range(0,30), v[:30])
@@ -654,5 +693,25 @@ if __name__ == '__main__':
     # points2cluster, centers, t, v = spectral(X=X, k=4, similarity_param=similarity_param, similarity=similarity)
     #
     # plt.scatter(X[:,0], X[:,1], c=points2cluster)
+
+
+    ###########################################################################
+    #                       t-SNE vs. PCA                                     #
+    ###########################################################################
+
+    from keras.datasets import mnist
+    from sklearn.datasets import load_digits
+    import time
+    from sklearn.manifold import TSNE
+
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    digits, tags = load_digits(return_X_y=True)   # small
+    data = digits / 16
+
+    # (data, tags), (x_test, y_test) = mnist.load_data()   #big
+    # data = data.reshape(60000, 784) / 255
+
+    fig7 = tSNE_vs_PCA(data, tags, 1500)
 
     plt.show()
