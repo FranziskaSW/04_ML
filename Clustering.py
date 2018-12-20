@@ -777,8 +777,6 @@ if __name__ == '__main__':
             ax.scatter(X[:, 0], X[:, 1], c=points2cluster, cmap=plt.get_cmap('Paired'))
             ax.set_title(str(k))
 
-    fig.savefig('synthetic_data_clustering.png')
-
     ####################################################################################
     #                 choose m  and  choose k silhouette                               #
     ####################################################################################
@@ -805,7 +803,6 @@ if __name__ == '__main__':
 
     points2cluster, centers, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
     fig4 = plot_similarity(X=X, similarity=similarity, similarity_param=similarity_param, points2cluster=points2cluster)
-    fig4.savefig('similarity.png')
 
     ####################################################################################
     #                        Choose k k-mean elbow                                     #
@@ -819,9 +816,6 @@ if __name__ == '__main__':
     plt.scatter(X[:,0], X[:,1], c=points2cluster)
 
     fig5, fig6 = choose_k_kmean(X, range(2,11))
-
-    fig5.savefig('4gaussians_choose_k.png')
-    fig6.savefig('4gaussians_choose_k_loss.png')
 
     ####################################################################################
     #                          find sigma for microarray                               #
@@ -938,8 +932,6 @@ if __name__ == '__main__':
     data = data.reshape(60000, 784) / 255
 
     fig7 = tSNE_vs_PCA(data, tags, 3000)
-    fig7.savefig('tSNE_vs_PCA.png')
-
 
     plt.show()
 
