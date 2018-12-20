@@ -696,21 +696,21 @@ if __name__ == '__main__':
     #
     # fig5.savefig('4gaussians_choose_k.png')
     # fig6.savefig('4gaussians_choose_k_loss.png')
-
-    ####################################################################################
-    #                               t-SNE vs. PCA                                      #
-    ####################################################################################
-
-
-    # digits, tags = load_digits(return_X_y=True)   # small
-    # data = digits / 16
-
-    (data, tags), (x_test, y_test) = mnist.load_data()   #big
-    data = data.reshape(60000, 784) / 255
-
-    fig7 = tSNE_vs_PCA(data, tags, 3000)
-    fig7.savefig('tSNE_vs_PCA.png')
-
+    #
+    # ####################################################################################
+    # #                               t-SNE vs. PCA                                      #
+    # ####################################################################################
+    #
+    #
+    # # digits, tags = load_digits(return_X_y=True)   # small
+    # # data = digits / 16
+    #
+    # (data, tags), (x_test, y_test) = mnist.load_data()   #big
+    # data = data.reshape(60000, 784) / 255
+    #
+    # fig7 = tSNE_vs_PCA(data, tags, 3000)
+    # fig7.savefig('tSNE_vs_PCA.png')
+    #
 
     ####################################################################################
     #                          find sigma for microarray                               #
@@ -764,13 +764,13 @@ if __name__ == '__main__':
     # similarity = gaussian_kernel
 
     # points2cluster, cdfa, t, v = spectral(X, k, similarity_param=similarity_param, similarity=similarity)
-    points2cluster, center = kmeans(X, k)
+    # points2cluster, center = kmeans(X, k)
 
     # plt.scatter(X[:, 0], X[:, 1], c=points2cluster)
     # plt.bar(range(0, 30), v[:30])
 
     vals = {}
-    for k in range(5,17):
+    for k in range(5, 17):
         points2cluster, centers = kmeans(X, k)
         vals.update({k: points2cluster})
 
@@ -793,14 +793,17 @@ if __name__ == '__main__':
 
         X_sort = X[p2c_idx]
 
-        ax.imshow(X_sort, extent=[0, 1, 0, 1], cmap="hot", vmin=-3, vmax=3)
+        dist_sort = euclid(X_sort, X_sort)
+        sim_sort = mnn(dist_sort, 30)
+        ax.imshow(sim_sort, extent=[0, 1, 0, 1], vmin=0, vmax=1)
         ax.set_title(str(k) + ' clusters')
 
-    fig8.savefig('microarray_choose_k.png')
+    fig8.savefig('microarray_choose_k_sim_big.png')
 
-
+    dist = euclid(X, X)
+    sim = mnn(dist, 30)
     plt.figure()
-    plt.imshow(X, extent=[0, 1, 0, 1], cmap="hot", vmin=-3, vmax=3)
+    plt.imshow(sim, extent=[0, 1, 0, 1], vmin=0, vmax=1)
     plt.colorbar()
 
 
