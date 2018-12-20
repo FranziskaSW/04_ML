@@ -4,7 +4,7 @@ import pickle
 import scipy
 
 from keras.datasets import mnist
-# from sklearn.datasets import load_digits
+from sklearn.datasets import load_digits
 from sklearn.manifold import TSNE
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
