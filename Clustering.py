@@ -332,26 +332,7 @@ def plot_similarity(X, similarity, similarity_param, points2cluster):
     ax1.imshow(Adjacency_sort)
 
     return fig1
-#
-# def translate(p2c):  # TODO: do I even need this?
-#
-#     p2c_new = []
-#     translate = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-#     translate_idx = -1
-#     words = {}
-#
-#     for i in range(0, p2c.shape[0]):
-#         val = p2c[i]
-#
-#         try:
-#             p2c_new = p2c_new + [words[val]]
-#         except KeyError:
-#             translate_idx += 1
-#             p2c_new = p2c_new + [translate[translate_idx]]
-#             words.update({val : translate[translate_idx]})
-#
-#     return np.array(p2c_new)
-#
+
 
 def silhouette(X, points2cluster):
     """
@@ -400,7 +381,7 @@ def silhouette(X, points2cluster):
 
 def choose_k_spectral(X, values, similarity_param, similarity):  # TODO: vielleicht brauche ich das gar nicht, weil ich es mit four_gaussians mache
     """
-    Uses visual method and silhouette method do choose k
+    Uses visual method and silhouette method to choose k
     :param X:
     :param values:
     :param similarity_param:
@@ -442,13 +423,13 @@ def choose_k_spectral(X, values, similarity_param, similarity):  # TODO: viellei
     return fig, fig2
 
 
-def choose_m_mnn(X, values, k): # TODO: besser andere funktion
+def choose_m_mnn(X, values, k):
     """
-
-    :param X:
-    :param values:
-    :param k:
-    :return:
+    Uses visual method to find m
+    :param X: data
+    :param values: range of values for m to try
+    :param k: number of desired clusters
+    :return: scatterplot of data for different m values
     """
     runs = {}
     for m in values:
@@ -557,7 +538,7 @@ def load_data():
                                     'mnn': 27},
                      'k': 9,
                      'data': apml},
-            'apml_small': {'similarity_param': {'gaussian': 5.,   #
+            'apml_small': {'similarity_param': {'gaussian': 5.,
                                     'mnn': 15},
                            'k': 9,
                            'data': apml_small},
@@ -810,15 +791,7 @@ if __name__ == '__main__':
 
         similarity = mnn
 
-        # fig1 = choose_m_mnn(X=X, values=[6, 9, 12, 15, 18, 27, 40, 55, 70], k=k)
-
-        #fig2, fig3 = choose_k_spectral(X, values=range(4,13),
-         #                              similarity_param=similarity_param,
-          #                             similarity=similarity)
-
-        # fig1.savefig(name + '_choose_m.png')
-        #fig2.savefig(name + '_choose_k.png')
-        #fig3.savefig(name + '_choose_k_sil.png')
+        fig1 = choose_m_mnn(X=X, values=[6, 9, 12, 15, 18, 27, 40, 55, 70], k=k)
 
     ####################################################################################
     #                           Similarity Plot                                        #
